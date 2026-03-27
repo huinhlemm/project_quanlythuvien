@@ -1,0 +1,770 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Thư Viện Sách Online </title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+
+    <style>
+        html {
+            height: 100%;
+        }
+
+        .book-item-animate {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+            .book-item-animate.show {
+                opacity: 1;
+                transform: translateY(0);
+                transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            }
+        body {
+            margin: 0;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        main {
+            flex: 1 0 auto;
+            padding-top: 70px; /* Adjust for fixed navbar height */
+        }
+
+        .navbar {
+            transition: all 0.4s ease-in-out;
+        }
+
+            .navbar.scrolled {
+                background: #ffffff;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+
+        .navbar-brand {
+            font-weight: 900;
+            font-size: 1.8rem;
+        }
+
+        .hero-banner {
+            height: 100vh;
+            background: url('/images/banner-library.jpg') center/cover no-repeat fixed;
+            position: relative;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+            .hero-banner::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: rgba(0,0,0,0.6);
+            }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+            .hero-content h1 {
+                font-size: 4rem;
+                font-weight: 900;
+            }
+
+            .hero-content p {
+                font-size: 1.25rem;
+            }
+
+        .btn-glow {
+            background-color: #0d6efd;
+            color: white;
+            padding: 12px 28px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 50px;
+            transition: 0.3s ease;
+            box-shadow: 0 0 0 rgba(13, 110, 253, 0.4);
+        }
+
+            .btn-glow:hover {
+                box-shadow: 0 0 15px rgba(13, 110, 253, 0.8);
+                transform: scale(1.05);
+            }
+
+        .section-title {
+            font-weight: 800;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 2rem 0;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary fs-3" href="/">
+                📚 Thư Viện Sách Online
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        @if (User.Identity.IsAuthenticated && User.IsInRole("ThuThu"))
+                        {
+                            <a class="nav-link" asp-controller="Librarian" asp-action="Index">Trang Chủ</a>
+                        }
+                        else
+                        {
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">Trang Chủ</a>
+                        }
+                    </li>
+
+                    @if (User.Identity.IsAuthenticated && User.IsInRole("DocGia"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Account" asp-action="LoanStatus">📦 Tình Trạng Mượn</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Account" asp-action="BorrowingHistory">🕓 Lịch Sử Mượn</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link position-relative" asp-controller="Account" asp-action="Notifications">
+                                🔔 Thông Báo
+                                <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="menu-notification-badge" style="display: none; font-size: 0.6em;">0</span>
+                            </a>
+                        </li>
+                    }
+
+                    @if (User.Identity.IsAuthenticated && User.IsInRole("ThuThu"))
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="librarianDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                🛠 Quản Lý Thư Viện
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="librarianDropdown">
+                                <li><a class="dropdown-item" asp-controller="Librarian" asp-action="ManageBooks">📚 Quản Lý Sách</a></li>
+                                <li><a class="dropdown-item" asp-controller="Librarian" asp-action="ManageGenres">🏷 Quản Lý Thể Loại</a></li>
+                                <li><a class="dropdown-item" asp-controller="Librarian" asp-action="ManageReaders">👤 Quản Lý Độc Giả</a></li>
+                                <li><a class="dropdown-item" asp-controller="Librarian" asp-action="LoanDashboard">📬 Quản Lý Mượn/Trả</a></li>
+                                <li><a class="dropdown-item" asp-controller="Librarian" asp-action="ManageReservations">📋 Quản Lý Đặt Trước</a></li>
+                                <li><a class="dropdown-item" asp-controller="Librarian" asp-action="OverdueStatistics">📊 Thống Kê Quá Hạn</a></li>
+                                <li><a class="dropdown-item" asp-controller="Librarian" asp-action="PopularBooks">🔥 Sách Phổ Biến</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Librarian" asp-action="MyActivityHistory">
+                                <i class="bi bi-clock-history me-1"></i> Lịch sử hoạt động
+                            </a>
+                        </li>
+                    }
+                </ul>
+
+                <div class="d-flex">
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <form id="logoutForm" asp-controller="Account" asp-action="Logout" method="post">
+                            <button class="btn btn-outline-danger" type="button" onclick="logoutAndResetChat()">Đăng Xuất</button>
+                        </form>
+                    }
+                    else
+                    {
+                        var currentUrl = ViewContext.HttpContext.Request.Path.ToString().ToLower();
+                        if (currentUrl.Contains("/account/login"))
+                        {
+                            <a class="btn btn-outline-primary ms-2" asp-controller="Account" asp-action="Register">Đăng Ký</a>
+                        }
+                        else if (currentUrl.Contains("/account/register"))
+                        {
+                            <a class="btn btn-outline-primary ms-2" asp-controller="Account" asp-action="Login">Đăng Nhập</a>
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-primary me-2" asp-controller="Account" asp-action="Login">Đăng Nhập</a>
+                            <a class="btn btn-primary" asp-controller="Account" asp-action="Register">Đăng Ký</a>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    @{
+        var isHomeIndex = ViewContext.RouteData.Values["controller"]?.ToString()?.ToLower() == "home"
+        && ViewContext.RouteData.Values["action"]?.ToString()?.ToLower() == "index";
+    }
+
+    @if (isHomeIndex)
+    {
+        <section class="hero-banner">
+            <div class="container hero-content">
+                <h1 class="animate__animated animate__fadeInDown">Chào mừng đến với <span id="typed"></span></h1>
+                <p class="animate__animated animate__fadeInUp mt-3">Khám phá tri thức, kết nối đam mê đọc sách</p>
+            </div>
+        </section>
+    }
+
+    @{
+        var addTopPadding = !(isHomeIndex); // Nếu KHÔNG phải Home/Index thì thêm padding-top
+        var mainClass = "container my-5" + (addTopPadding ? " pt-5 mt-4" : "");
+    }
+
+    <main class="@mainClass">
+        @RenderBody()
+    </main>
+
+    <footer class="text-center border-top">
+        <div class="container">
+            <p class="mb-0">© @DateTime.Now.Year Thư Viện Sách Online | Nhóm 1  ❤️</p>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        AOS.init({
+            duration: 1000,
+            once: true
+        });
+
+        // Typed.js hiệu ứng gõ chữ
+        // Kiểm tra phần tử có tồn tại không trước khi khởi tạo
+        if (document.getElementById('typed')) {
+            var typed = new Typed("#typed", {
+                strings: ["Thư Viện Sách Online", "Kho Tri Thức Số", "Nơi Hội Tụ Tri Thức"],
+                typeSpeed: 70,
+                backSpeed: 40,
+                loop: true
+            });
+        }
+
+        // Navbar đổi màu khi cuộn
+        window.addEventListener('scroll', function () {
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                navbar.classList.toggle('scrolled', window.scrollY > 100);
+            }
+        });
+    </script>
+    @if (User.Identity.IsAuthenticated)
+    {
+        <script>
+                        function logoutAndResetChat() {
+                // Kiểm tra xem Crisp đã được tải chưa
+                if (window.$crisp) {
+                    // Gửi lệnh reset session đến Crisp API
+                    // Lệnh này sẽ xóa session hiện tại và bắt đầu một cuộc trò chuyện mới
+                    window.$crisp.push(["do", "session:reset"]);
+                }
+                // Sau khi gửi lệnh, tiến hành submit form đăng xuất
+                document.getElementById('logoutForm').submit();
+            }
+                 document.addEventListener('DOMContentLoaded', function () {
+                const isReaderOrLibrarian = @((User.IsInRole("DocGia") || User.IsInRole("ThuThu")).ToString().ToLower());
+
+                // --- BẮT ĐẦU LOGIC CHUNG CHO THỦ THƯ VÀ ĐỘC GIẢ ---
+                if(isReaderOrLibrarian) {
+
+                    // --- LOGIC THÔNG BÁO ---
+                    const notificationBadge = document.getElementById('notification-badge');
+                    const menuNotificationBadge = document.getElementById('menu-notification-badge');
+                    const notificationList = document.getElementById('notification-list');
+                    const notificationDropdown = document.getElementById('notificationDropdown');
+
+                    function fetchNotifications() {
+                        let baseUrl = '@(User.IsInRole("DocGia") ? "/api/notifications" : "/api/librarian/notification-counts")';
+                        const apiUrlWithCacheBusting = `${baseUrl}?v=${new Date().getTime()}`;
+                        fetch(apiUrlWithCacheBusting).then(res => res.json()).then(data => {
+                            if ('@User.IsInRole("DocGia")' === 'True') {
+                                updateReaderNotifications(data);
+                            } else {
+                                updateLibrarianNotifications(data);
+                            }
+                        }).catch(error => console.error('Lỗi tải thông báo:', error));
+                    }
+
+                    function updateReaderNotifications(data) {
+                        const badges = [notificationBadge, menuNotificationBadge];
+                        badges.forEach(badge => {
+                            if (badge) {
+                                if (data.unreadCount > 0) {
+                                    badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+                                    badge.style.display = 'inline-block';
+                                } else {
+                                    badge.style.display = 'none';
+                                }
+                            }
+                        });
+
+                        if(notificationList) {
+                            notificationList.innerHTML = '';
+                            if (data.notifications && data.notifications.length > 0) {
+                                data.notifications.forEach(noti => {
+                                    const link = document.createElement('a');
+                                    link.className = `dropdown-item text-wrap ${!noti.isRead ? 'fw-bold bg-light' : ''}`;
+                                    link.href = '#';
+                                    link.dataset.id = noti.notificationId;
+                                    link.innerHTML = `<small>${noti.message}</small><div class="text-muted" style="font-size: 0.75rem;">${new Date(noti.createdAt).toLocaleString()}</div>`;
+                                    notificationList.appendChild(document.createElement('li')).appendChild(link);
+                                });
+                            } else {
+                                notificationList.innerHTML = '<li><p class="dropdown-item text-muted small">Không có thông báo nào.</p></li>';
+                            }
+                            notificationList.innerHTML += '<li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-center small" href="/Account/Notifications">Xem tất cả</a></li>';
+                        }
+                    }
+
+                    function updateLibrarianNotifications(data) {
+                         const totalCount = data.loanManagement + data.reservationManagement;
+                         if (notificationBadge) {
+                            if (totalCount > 0) {
+                                notificationBadge.textContent = totalCount > 9 ? '9+' : totalCount;
+                                notificationBadge.style.display = 'block';
+                            } else {
+                                notificationBadge.style.display = 'none';
+                            }
+                         }
+                        if(notificationList){
+                            notificationList.innerHTML = '';
+                            let hasContent = false;
+                            if(data.loanManagement > 0) {
+                                 notificationList.innerHTML += `<li><a class="dropdown-item" href="/Librarian/LoanDashboard"><strong>${data.loanManagement}</strong> yêu cầu mượn/trả đang chờ</a></li>`;
+                                 hasContent = true;
+                            }
+                            if(data.reservationManagement > 0) {
+                                notificationList.innerHTML += `<li><a class="dropdown-item" href="/Librarian/ManageReservations"><strong>${data.reservationManagement}</strong> yêu cầu đặt trước đang chờ</a></li>`;
+                                hasContent = true;
+                            }
+                            if(!hasContent) {
+                                 notificationList.innerHTML = '<li><p class="dropdown-item text-muted small">Không có thông báo nào.</p></li>';
+                            }
+                        }
+                    }
+
+                    if (notificationList && '@User.IsInRole("DocGia")' === 'True') {
+                        notificationList.addEventListener('click', function (e) {
+                             const targetLink = e.target.closest('a.dropdown-item');
+                             if (!targetLink || !targetLink.dataset.id) return;
+                             e.preventDefault();
+                             const notificationId = targetLink.dataset.id;
+                             if (targetLink.classList.contains('bg-light')) {
+                                fetch(`/api/notifications/mark-as-read/${notificationId}`, { method: 'POST' }).then(res => {
+                                    if (res.ok) fetchNotifications();
+                                });
+                             }
+                        });
+                    }
+                    if(notificationDropdown) notificationDropdown.addEventListener('show.bs.dropdown', fetchNotifications);
+
+                    fetchNotifications();
+                    setInterval(fetchNotifications, 60000);
+
+              
+                }
+            });
+        </script>
+    }
+    @await RenderSectionAsync("Scripts", required: false)
+    <!-- 💬 Nút mở chat -->
+    <div id="chatButton" class="chat-btn">
+        <i class="bi bi-chat-dots-fill"></i>
+    </div>
+
+    <!-- 💬 Hộp chat -->
+    <div id="chatBox" class="chat-box">
+        <div class="chat-header">
+            <div class="d-flex align-items-center">
+                <div class="avatar bg-white text-primary me-2">📚</div>
+                <strong>Thủ Thư Hỗ Trợ</strong>
+            </div>
+            <button id="closeChat" class="btn-close btn-close-white"></button>
+        </div>
+
+        <div id="chatMessages" class="chat-messages">
+            <div class="text-center text-muted mt-3">💬 Chào bạn! Tôi có thể giúp gì hôm nay?</div>
+        </div>
+
+        <div class="chat-input d-flex align-items-center">
+            <!-- Nút chọn emoji -->
+            <button id="emojiBtn" class="btn btn-light me-1"><i class="bi bi-emoji-smile"></i></button>
+
+            <!-- Nút chọn ảnh -->
+            <label for="imageUpload" class="btn btn-light me-1 mb-0">
+                <i class="bi bi-image"></i>
+            </label>
+            <input type="file" id="imageUpload" accept="image/*" hidden>
+            <input id="chatInput" type="text" class="form-control" placeholder="Nhập tin nhắn..." />
+            <button id="sendBtn" class="btn btn-primary ms-1"><i class="bi bi-send-fill"></i></button>
+        </div>
+    </div>
+
+    <!-- CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+    <script>
+        const user = '@User.Identity.Name';
+        const chatMessagesDiv = document.getElementById("chatMessages");
+        const input = document.getElementById("chatInput");
+        const sendBtn = document.getElementById("sendBtn");
+        const chatBox = document.getElementById("chatBox");
+        const chatButton = document.getElementById("chatButton");
+        const closeChat = document.getElementById("closeChat");
+        const emojiBtn = document.getElementById("emojiBtn");
+        const imageUpload = document.getElementById("imageUpload");
+
+        if (!user || user.trim() === '') {
+            chatButton.onclick = () => alert("⚠️ Vui lòng đăng nhập để sử dụng chat hỗ trợ!");
+        } else {
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chathub?user=" + encodeURIComponent(user))
+                .build();
+
+            connection.on("ReceiveMessage", (fromUser, message) => {
+                appendMessage(fromUser, message);
+            });
+
+            // ✅ Hiển thị tin nhắn (text / emoji / ảnh)
+            function appendMessage(from, msg) {
+                msg = decodeURIComponent(msg);
+                const div = document.createElement("div");
+                div.classList.add("chat-bubble", from === user ? "me" : "you");
+
+                if (msg.startsWith("[img]")) {
+                    const imgUrl = msg.replace("[img]", "");
+                    div.innerHTML = `
+                        <div class="bubble-text">
+                            <img src="${imgUrl}" class="chat-img"
+                                 style="max-width:150px; max-height:150px; border-radius:10px; object-fit:cover; cursor:pointer;">
+                        </div>`;
+                } else if (msg.includes("<img")) {
+                    div.innerHTML = `
+                        <div class="bubble-text">
+                            ${msg.replace(/<img /g, '<img class="chat-img" style="max-width:150px; max-height:150px; border-radius:10px; object-fit:cover; cursor:pointer;" ')}
+                        </div>`;
+                } else {
+                    div.innerHTML = `<div class="bubble-text">${msg}</div>`;
+                }
+
+                chatMessagesDiv.appendChild(div);
+                chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+
+                // ✅ Gắn sự kiện click để mở to ảnh
+                div.querySelectorAll(".chat-img").forEach(img => {
+                    img.addEventListener("click", () => openImageViewer(img.src));
+                });
+            }
+
+            // ✅ Popup xem ảnh to
+            function openImageViewer(src) {
+                const existing = document.querySelector(".img-viewer");
+                if (existing) existing.remove();
+
+                const overlay = document.createElement("div");
+                overlay.classList.add("img-viewer");
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 9999;
+                `;
+
+                const img = document.createElement("img");
+                img.src = src;
+                img.style.cssText = `
+                    max-width: 90vw;
+                    max-height: 90vh;
+                    border-radius: 12px;
+                    box-shadow: 0 0 20px rgba(255,255,255,0.3);
+                    animation: zoomIn 0.2s ease;
+                `;
+
+                const closeBtn = document.createElement("span");
+                closeBtn.textContent = "✕";
+                closeBtn.style.cssText = `
+                    position: absolute;
+                    top: 20px; right: 30px;
+                    color: white;
+                    font-size: 30px;
+                    cursor: pointer;
+                    font-weight: bold;
+                `;
+
+                closeBtn.onclick = () => overlay.remove();
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) overlay.remove();
+                };
+
+                overlay.appendChild(img);
+                overlay.appendChild(closeBtn);
+                document.body.appendChild(overlay);
+            }
+
+            // ✅ Load lịch sử tin nhắn
+            async function loadMessages() {
+                try {
+                    const res = await fetch(`/Chat/GetMessages?reader=${encodeURIComponent(user)}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    chatMessagesDiv.innerHTML = "";
+                    data.forEach(m => appendMessage(m.fromUser, m.message));
+                } catch (err) {
+                    console.error("Lỗi tải tin nhắn:", err);
+                }
+            }
+
+            connection.start()
+                .then(() => loadMessages())
+                .catch(err => console.error(err));
+
+            // ✅ Gửi tin nhắn text hoặc emoji (đã FIX)
+            sendBtn.onclick = async () => {
+                const msg = input.value.trim();
+                if (!msg) return;
+                try {
+                    await connection.invoke("SendMessage", user, "thu-thu", encodeURIComponent(msg));
+                    input.value = "";
+                } catch (err) {
+                    console.error("Lỗi gửi tin:", err);
+                }
+            };
+
+            input.addEventListener("keypress", e => {
+                if (e.key === "Enter") sendBtn.click();
+            });
+
+            chatButton.onclick = () => {
+                chatBox.classList.toggle("show");
+                if (chatBox.classList.contains("show")) loadMessages();
+            };
+            closeChat.onclick = () => chatBox.classList.remove("show");
+
+            // ✅ EMOJI PICKER (hoạt động bình thường)
+            emojiBtn.onclick = () => {
+                const existing = document.querySelector(".emoji-picker");
+                if (existing) {
+                    existing.remove();
+                    return;
+                }
+
+                const picker = document.createElement("div");
+                picker.classList.add("emoji-picker");
+                picker.style.cssText = `
+                    position:absolute; bottom:60px; left:10px;
+                    background:white; border:1px solid #ccc;
+                    padding:8px; border-radius:10px;
+                    display:grid; grid-template-columns:repeat(6,1fr);
+                    gap:5px; font-size:22px; z-index:999;
+                `;
+
+                const emojis = "😀 😃 😄 😁 😆 😅 😂 😊 😇 😉 😍 😘 😜 😎 😢 😭 😡 🤣 🤔 🙄 👍 👎 ❤️ 💔 🙏 👏 🎉";
+                for (const ch of emojis.split(" ")) {
+                    if (!ch.trim()) continue;
+                    const span = document.createElement("span");
+                    span.textContent = ch;
+                    span.style.cursor = "pointer";
+                    span.addEventListener("click", () => {
+                        input.value += ch;
+                        input.focus();
+                        picker.remove();
+                    });
+                    picker.appendChild(span);
+                }
+
+                emojiBtn.parentElement.appendChild(picker);
+            };
+
+            // ✅ GỬI ẢNH
+            imageUpload.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append("image", file);
+
+                try {
+                    const res = await fetch("/Chat/UploadImage", {
+                        method: "POST",
+                        body: formData
+                    });
+                    const data = await res.json();
+
+                    if (data.url) {
+                        await connection.invoke("SendMessage", user, "thu-thu", encodeURIComponent("[img]" + data.url));
+                    } else {
+                        alert("❌ Không tải được ảnh lên máy chủ!");
+                    }
+                } catch (err) {
+                    console.error("Lỗi gửi ảnh:", err);
+                }
+
+                e.target.value = "";
+            };
+        }
+    </script>
+
+
+
+
+
+    <style>
+        /* 💬 Nút mở chat */
+        .chat-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+            z-index: 1000;
+            transition: 0.3s;
+        }
+
+            .chat-btn:hover {
+                transform: scale(1.1);
+            }
+
+        /* 💬 Hộp chat */
+        .chat-box {
+            position: fixed;
+            bottom: 90px;
+            right: 25px;
+            width: 320px;
+            height: 420px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+            transform: translateY(30px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+            .chat-box.show {
+                transform: translateY(0);
+                opacity: 1;
+                visibility: visible;
+            }
+
+        .chat-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f7f9fc;
+        }
+
+        .chat-input {
+            padding: 10px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            border-top: 1px solid #ddd;
+        }
+
+        /* 💬 Bong bóng tin nhắn */
+        .chat-bubble {
+            margin-bottom: 8px;
+            max-width: 80%;
+            clear: both;
+            animation: fadeIn 0.3s ease;
+        }
+
+            .chat-bubble.me {
+                background: #007bff;
+                color: white;
+                border-radius: 14px 14px 0 14px;
+                align-self: flex-end;
+                margin-left: auto;
+                padding: 8px 12px;
+            }
+
+            .chat-bubble.you {
+                background: #e9ecef;
+                color: #000;
+                border-radius: 14px 14px 14px 0;
+                align-self: flex-start;
+                margin-right: auto;
+                padding: 8px 12px;
+            }
+
+
+        {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+        }
+    </style>
+
+
+</body>
+</html> 
